@@ -20,22 +20,22 @@ jobs:
         run: npm ci
   
       - name: build web app
-        working-directory: ./web
+        working-directory: ./frontend
         run: npm run build
 
       - name: install AWS CDK
         run: sudo npm i -g aws-cdk
 
       - name: install deployment dependencies
-        working-directory: ./ts-webdepl
+        working-directory: ./aws-backend
         run: npm ci
 
       - name: cdk synth
-        working-directory: ./ts-webdepl
+        working-directory: ./aws-backend
         run: cdk synth
 
       - name: cdk deploy
-        working-directory: ./ts-webdepl
+        working-directory: ./aws-backend
         env:
           AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
           AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
