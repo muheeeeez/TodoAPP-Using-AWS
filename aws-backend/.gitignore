@@ -1,7 +1,10 @@
 # CDK build outputs
 cdk.out/
-*.js
 *.d.ts
+
+# Compiled JavaScript (but keep config files)
+*.js
+!jest.config.js
 
 # Node dependencies
 node_modules/
