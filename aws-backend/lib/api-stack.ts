@@ -19,7 +19,7 @@ export class ApiStack extends Stack {
       this,
       "CreateTaskLambda",
       {
-        entry: path.join(__dirname, "../../lambdas/createTask/handler.ts"),
+        entry: path.join(__dirname, "../lambdas/create-tasks.ts/handler.ts"),
         runtime: Runtime.NODEJS_18_X,
         environment: {
           TASKS_TABLE_NAME: props?.dbStack.tasksTable.tableName!,
