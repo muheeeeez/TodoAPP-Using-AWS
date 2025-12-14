@@ -12,7 +12,7 @@ export const handler: APIGatewayProxyHandlerV2 = async (event) => {
   const body = event.body ? JSON.parse(event.body) : {};
   const {title, description} = body;
   const taskId = crypto.randomUUID()
-  const createdAt = new Date().toISOString
+  const createdAt = new Date().toISOString()
   const task ={
     userId, taskId, title, description, status: 'pending', createdAt
   }
