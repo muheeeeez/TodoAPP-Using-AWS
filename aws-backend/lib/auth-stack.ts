@@ -14,14 +14,14 @@ export class AuthStack extends Stack {
       userPoolName: "TaskAppUsers",
       selfSignUpEnabled: true,
       signInAliases: { email: true },
-      autoVerify: { email: true }, // email verification enabled
+      autoVerify: { email: true },
       standardAttributes: { email: { required: true, mutable: false } },
     });
 
     // Create User Pool Client
     this.userPoolClient = new cognito.UserPoolClient(this, "TaskAppUserPoolClient", {
       userPool: this.userPool,
-      generateSecret: false, // SPA-friendly
+      generateSecret: false,
     });
 
     // Output User Pool ID and Client ID
@@ -36,4 +36,3 @@ export class AuthStack extends Stack {
     });
   }
 }
-

@@ -1,11 +1,11 @@
-name: Todo App CDK Deploy
+name: Todo App Backend Deploy
 
 on:
   push:
     branches: [main]
 
 jobs:
-  build:
+  deploy-backend:
     runs-on: ubuntu-latest
 
     strategy:
@@ -14,29 +14,24 @@ jobs:
     
     steps:
       - uses: actions/checkout@v4
-      
-      - name: Install Web app Dependencies
-        working-directory: ./frontend
-        run: npm ci
-  
-      - name: build web app
-        working-directory: ./frontend
-        env:
-          NUXT_PUBLIC_API_BASE_URL: ${{ secrets.NUXT_PUBLIC_API_BASE_URL }}
-        run: npm run build
 
-      - name: install AWS CDK
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ matrix.node-version }}
+
+      - name: Install AWS CDK
         run: sudo npm i -g aws-cdk
 
-      - name: install deployment dependencies
+      - name: Install Backend Dependencies
         working-directory: ./aws-backend
         run: npm ci
 
-      - name: cdk synth
+      - name: CDK Synth
         working-directory: ./aws-backend
         run: cdk synth
 
-      - name: cdk deploy
+      - name: CDK Deploy
         working-directory: ./aws-backend
         env:
           AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}

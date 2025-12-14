@@ -1,0 +1,44 @@
+# Cursor AI Rules for This Project
+
+## Documentation Policy
+- **NEVER** create documentation files (.md, .txt, README, etc.) unless **EXPLICITLY** requested by the user
+- **NEVER** proactively write guides, tutorials, or explanatory documents
+- **NEVER** create summary files, migration guides, or setup instructions automatically
+- Only create documentation when the user specifically asks: "create documentation for X" or "write a guide for Y"
+- Focus on code implementation, not documentation
+
+## Code-First Approach
+- Prioritize writing actual code over documentation
+- Implement features directly without creating supporting docs
+- Answer questions verbally in chat instead of creating .md files
+- If clarification is needed, ask in the response, don't document assumptions
+
+## When Documentation IS Allowed
+- User explicitly says "create a README" or "write documentation"
+- User asks "document this API" or "create a guide for X"
+- User requests setup instructions specifically
+- Inline code comments are always acceptable
+
+## Default Behavior
+- Write code
+- Fix bugs
+- Implement features
+- Explain things in chat responses
+- **DO NOT** create .md files
+
+## Examples
+
+❌ WRONG:
+- Creating MIGRATION_SUMMARY.md after making changes
+- Writing API_GUIDE.md when implementing endpoints
+- Generating SETUP_INSTRUCTIONS.md for new features
+- Creating AUTHENTICATION_GUIDE.md when adding auth
+
+✅ CORRECT:
+- Just implement the feature
+- Explain in chat if needed
+- Only create .md files when user explicitly asks
+
+## Remember
+Code speaks louder than documentation. The user can read the code.
+
