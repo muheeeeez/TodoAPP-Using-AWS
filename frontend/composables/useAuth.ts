@@ -90,7 +90,7 @@ export const useAuth = () => {
   // Check current session and restore if valid
   const checkSession = async (): Promise<boolean> => {
     try {
-      const token = authStore.token;
+      const token = authStore.token.value;
       
       if (!token) {
         authStore.clearAuth();
@@ -100,7 +100,7 @@ export const useAuth = () => {
       // Decode JWT to check expiration
       try {
         const parts = token.split('.');
-        if (parts.length !== 3) {
+        if (parts.length !== 3 || !parts[1]) {
           authStore.clearAuth();
           return false;
         }
@@ -115,7 +115,7 @@ export const useAuth = () => {
         }
 
         // Token is valid, ensure user info is set
-        if (!authStore.user && payload.userId && payload.email) {
+        if (!authStore.user.value && payload.userId && payload.email) {
           authStore.setUser({
             email: payload.email,
             userId: payload.userId,
@@ -143,6 +143,6 @@ export const useAuth = () => {
     signOut,
     checkSession,
     isAuthenticated,
-    user: computed(() => authStore.user),
+    user: computed(() => authStore.user.value),
   };
 };

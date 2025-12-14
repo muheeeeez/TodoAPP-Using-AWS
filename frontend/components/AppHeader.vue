@@ -8,9 +8,9 @@
         </NuxtLink>
         
         <div class="header-actions">
-          <div v-if="auth.user" class="user-info">
+          <div v-if="auth.user.value" class="user-info">
             <IconUser class="user-icon" />
-            <span class="user-email">{{ auth.user.email }}</span>
+            <span class="user-email">{{ auth.user.value.email }}</span>
           </div>
           <button
             @click="handleSignOut"

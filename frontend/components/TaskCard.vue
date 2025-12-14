@@ -39,16 +39,6 @@
           <span class="btn-text-full">Complete</span>
         </button>
       </template>
-      <template v-else-if="task.status === 'pending' || task.status === 'in-progress'">
-        <button
-          @click="$emit('change-status', { taskId: task.taskId, status: 'cancelled' })"
-          class="btn btn-warning"
-          title="Cancel Task"
-        >
-          <IconXMark class="btn-icon" />
-          <span class="btn-text-full">Cancel</span>
-        </button>
-      </template>
       
       <!-- Edit and Delete Actions -->
       <button

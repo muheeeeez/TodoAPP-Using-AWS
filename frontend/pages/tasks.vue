@@ -42,7 +42,7 @@
         >
           <div class="modal-content">
             <TaskForm
-              :loading="tasksStore.loading"
+              :loading="tasksStore.loading.value"
               @submit="handleCreateTask"
               @cancel="showCreateForm = false"
             />
@@ -60,7 +60,7 @@
           <div class="modal-content">
             <TaskForm
               :task="editingTask"
-              :loading="tasksStore.loading"
+              :loading="tasksStore.loading.value"
               @submit="handleUpdateTask"
               @cancel="editingTask = null"
             />
@@ -69,18 +69,18 @@
       </Transition>
 
       <!-- Loading State -->
-      <div v-if="tasksStore.loading && (!tasksStore.tasks || tasksStore.tasks.length === 0)" class="loading-state">
+      <div v-if="tasksStore.loading.value && (!tasksStore.tasks.value || tasksStore.tasks.value.length === 0)" class="loading-state">
         <div class="spinner"></div>
         <p class="loading-text">Loading tasks...</p>
       </div>
 
       <!-- Error State -->
-      <div v-if="tasksStore.error && !tasksStore.loading" class="error-message">
-        {{ tasksStore.error }}
+      <div v-if="tasksStore.error.value && !tasksStore.loading.value" class="error-message">
+        {{ tasksStore.error.value }}
       </div>
 
       <!-- Tasks Grid -->
-      <div v-if="!tasksStore.loading || filteredTasks.length > 0" class="tasks-grid">
+      <div v-if="!tasksStore.loading.value || filteredTasks.length > 0" class="tasks-grid">
         <TransitionGroup name="list">
           <TaskCard
             v-for="task in filteredTasks"
@@ -95,7 +95,7 @@
       </div>
 
       <!-- Empty State -->
-      <div v-if="!tasksStore.loading && filteredTasks.length === 0" class="empty-state">
+      <div v-if="!tasksStore.loading.value && filteredTasks.length === 0" class="empty-state">
         <div class="empty-icon-container">
           <IconListBullet size="4rem" />
         </div>
@@ -141,7 +141,7 @@ onMounted(async () => {
 
 // Filtered tasks based on active filter
 const filteredTasks = computed(() => {
-  const tasks = Array.isArray(tasksStore.tasks) ? tasksStore.tasks : [];
+  const tasks = Array.isArray(tasksStore.tasks.value) ? tasksStore.tasks.value : [];
   if (activeFilter.value === 'all') {
     return tasks;
   }
@@ -150,12 +150,12 @@ const filteredTasks = computed(() => {
 
 // Status filter options with counts
 const statusFilters = computed(() => {
-  const tasks = Array.isArray(tasksStore.tasks) ? tasksStore.tasks : [];
+  const tasks = Array.isArray(tasksStore.tasks.value) ? tasksStore.tasks.value : [];
   return [
     { value: 'all' as const, label: 'All', count: tasks.length },
-    { value: 'pending' as const, label: 'Pending', count: tasksStore.pendingTasks?.length || 0 },
-    { value: 'in-progress' as const, label: 'In Progress', count: tasksStore.inProgressTasks?.length || 0 },
-    { value: 'completed' as const, label: 'Completed', count: tasksStore.completedTasks?.length || 0 },
+    { value: 'pending' as const, label: 'Pending', count: tasksStore.pendingTasks.value?.length || 0 },
+    { value: 'in-progress' as const, label: 'In Progress', count: tasksStore.inProgressTasks.value?.length || 0 },
+    { value: 'completed' as const, label: 'Completed', count: tasksStore.completedTasks.value?.length || 0 },
     { value: 'cancelled' as const, label: 'Cancelled', count: tasks.filter(t => t.status === 'cancelled').length },
   ];
 });
@@ -177,7 +177,7 @@ const handleCreateTask = async (data: { title: string; description?: string }) =
     await tasksStore.createTask(data.title, data.description);
     showCreateForm.value = false;
     // Show success feedback
-    if (tasksStore.error) {
+    if (tasksStore.error.value) {
       // Error will be shown in error message area
     }
   } catch (error: any) {
