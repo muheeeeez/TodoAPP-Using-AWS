@@ -4,30 +4,54 @@ import * as lambda from "aws-cdk-lib/aws-lambda-nodejs";
 import { Runtime } from "aws-cdk-lib/aws-lambda";
 import * as path from "path";
 import { DatabaseStack } from "./database-stack";
-import { AuthStack } from "./auth-stack";
-import { ApiGateway } from "aws-cdk-lib/aws-events-targets";
 import { 
-  CognitoUserPoolsAuthorizer, 
   LambdaIntegration, 
   RestApi,
   Cors,
   MethodOptions,
-  ThrottleSettings,
   UsagePlan,
   Period,
   ApiKey,
-  ApiKeySourceType,
   AuthorizationType,
+  RequestAuthorizer,
+  IdentitySource,
 } from "aws-cdk-lib/aws-apigateway";
 
 export class ApiStack extends Stack {
   constructor(
     scope: Construct,
     id: string,
-    props?: StackProps & { dbStack: DatabaseStack; authStack: AuthStack }
+    props?: StackProps & { dbStack: DatabaseStack }
   ) {
     super(scope, id, props);
 
+    // JWT Secret for token generation/verification
+    // Auto-generate a cryptographically secure secret if not provided
+    const jwtSecret = process.env.JWT_SECRET || (() => {
+      const crypto = require('crypto');
+      return crypto.randomBytes(32).toString('base64');
+    })();
+
+    // Auth Lambda Functions
+    const signupLambda = new lambda.NodejsFunction(this, "SignupLambda", {
+      entry: path.join(__dirname, "../lambdas/auth-signup/handler.ts"),
+      runtime: Runtime.NODEJS_18_X,
+      environment: {
+        USERS_TABLE_NAME: props?.dbStack.usersTable.tableName!,
+        JWT_SECRET: jwtSecret,
+      },
+    });
+
+    const loginLambda = new lambda.NodejsFunction(this, "LoginLambda", {
+      entry: path.join(__dirname, "../lambdas/auth-login/handler.ts"),
+      runtime: Runtime.NODEJS_18_X,
+      environment: {
+        USERS_TABLE_NAME: props?.dbStack.usersTable.tableName!,
+        JWT_SECRET: jwtSecret,
+      },
+    });
+
+    // Task Lambda Functions
     const createTaskLambda = new lambda.NodejsFunction(
       this,
       "CreateTaskLambda",
@@ -36,6 +60,7 @@ export class ApiStack extends Stack {
         runtime: Runtime.NODEJS_18_X,
         environment: {
           TASKS_TABLE_NAME: props?.dbStack.tasksTable.tableName!,
+          JWT_SECRET: jwtSecret,
         },
       }
     );
@@ -44,6 +69,7 @@ export class ApiStack extends Stack {
       runtime: Runtime.NODEJS_18_X,
       environment: {
         TASKS_TABLE_NAME: props?.dbStack.tasksTable.tableName!,
+        JWT_SECRET: jwtSecret,
       },
     });
     const updateTaskLambda = new lambda.NodejsFunction(this, "UpdateTaskLambda", {
@@ -51,6 +77,7 @@ export class ApiStack extends Stack {
       runtime: Runtime.NODEJS_18_X,
       environment: {
         TASKS_TABLE_NAME: props?.dbStack.tasksTable.tableName!,
+        JWT_SECRET: jwtSecret,
       },
     });
     const deleteTaskLambda = new lambda.NodejsFunction(this, "DeleteTaskLambda", {
@@ -58,6 +85,7 @@ export class ApiStack extends Stack {
       runtime: Runtime.NODEJS_18_X,
       environment: {
         TASKS_TABLE_NAME: props?.dbStack.tasksTable.tableName!,
+        JWT_SECRET: jwtSecret,
       },
     });
     const markTaskDoneLambda = new lambda.NodejsFunction(this, "MarkTaskDoneLambda", {
@@ -65,10 +93,15 @@ export class ApiStack extends Stack {
       runtime: Runtime.NODEJS_18_X,
       environment: {
         TASKS_TABLE_NAME: props?.dbStack.tasksTable.tableName!,
+        JWT_SECRET: jwtSecret,
       },
     });
 
-    // Grant permissions
+    // Grant permissions for auth lambdas
+    props?.dbStack.usersTable.grantWriteData(signupLambda);
+    props?.dbStack.usersTable.grantReadWriteData(loginLambda);
+
+    // Grant permissions for task lambdas
     props?.dbStack.tasksTable.grantWriteData(createTaskLambda);
     props?.dbStack.tasksTable.grantReadData(getTasksLambda);
     props?.dbStack.tasksTable.grantWriteData(updateTaskLambda);
@@ -80,11 +113,7 @@ export class ApiStack extends Stack {
       restApiName: "TodoApp API",
       description: "REST API for Todo Application",
       defaultCorsPreflightOptions: {
-        allowOrigins: [
-          'http://localhost:3000',
-          'https://localhost:3000',
-          'https://d26sbga84c89mx.cloudfront.net',
-        ],
+        allowOrigins: Cors.ALL_ORIGINS, // Use wildcard to avoid multiple origins issue
         allowMethods: Cors.ALL_METHODS,
         allowHeaders: [
           'Content-Type',
@@ -93,7 +122,7 @@ export class ApiStack extends Stack {
           'X-Api-Key',
           'X-Amz-Security-Token',
         ],
-        allowCredentials: true,
+        allowCredentials: false, // Must be false when using wildcard
         maxAge: Duration.seconds(3600), // Cache preflight for 1 hour
       },
       defaultMethodOptions: {
@@ -121,16 +150,9 @@ export class ApiStack extends Stack {
       },
     });
 
-    // Create Cognito Authorizer
-    const authorizer = new CognitoUserPoolsAuthorizer(this, "CognitoAuthorizer", {
-      cognitoUserPools: [props?.authStack.userPool!],
-      identitySource: "method.request.header.Authorization",
-    });
-
-    // Common method options with authorizer and security headers
-    const methodOptions: MethodOptions = {
-      authorizer: authorizer,
-      authorizationType: AuthorizationType.COGNITO,
+    // Common method options with security headers (no auth for public endpoints)
+    const publicMethodOptions: MethodOptions = {
+      authorizationType: AuthorizationType.NONE,
       methodResponses: [
         {
           statusCode: '200',
@@ -164,25 +186,84 @@ export class ApiStack extends Stack {
         },
       ],
     };
+
+    // Method options for protected endpoints (require authentication via JWT in handler)
+    const protectedMethodOptions: MethodOptions = {
+      authorizationType: AuthorizationType.NONE, // Auth checked in Lambda handler
+      methodResponses: [
+        {
+          statusCode: '200',
+          responseParameters: {
+            'method.response.header.Access-Control-Allow-Origin': true,
+            'method.response.header.Access-Control-Allow-Headers': true,
+            'method.response.header.Access-Control-Allow-Methods': true,
+            'method.response.header.X-Content-Type-Options': true,
+            'method.response.header.X-Frame-Options': true,
+            'method.response.header.X-XSS-Protection': true,
+            'method.response.header.Strict-Transport-Security': true,
+          },
+        },
+        {
+          statusCode: '400',
+          responseParameters: {
+            'method.response.header.Access-Control-Allow-Origin': true,
+          },
+        },
+        {
+          statusCode: '401',
+          responseParameters: {
+            'method.response.header.Access-Control-Allow-Origin': true,
+          },
+        },
+        {
+          statusCode: '500',
+          responseParameters: {
+            'method.response.header.Access-Control-Allow-Origin': true,
+          },
+        },
+      ],
+    };
+
+    // Auth endpoints (public)
+    const authResource = api.root.addResource("auth");
     
-    const todoResource = api.root.addResource("todo", {
-      defaultCorsPreflightOptions: {
-        allowOrigins: [
-          'http://localhost:3000',
-          'https://localhost:3000',
-          'https://d26sbga84c89mx.cloudfront.net',
-        ],
-        allowMethods: Cors.ALL_METHODS,
-        allowHeaders: [
-          'Content-Type',
-          'X-Amz-Date',
-          'Authorization',
-          'X-Api-Key',
-          'X-Amz-Security-Token',
-        ],
-        allowCredentials: true,
-      },
+    // POST /auth/signup
+    const signupIntegration = new LambdaIntegration(signupLambda, {
+      proxy: true,
+      integrationResponses: [
+        {
+          statusCode: '201',
+          responseParameters: {
+            'method.response.header.Access-Control-Allow-Origin': "'*'",
+            'method.response.header.X-Content-Type-Options': "'nosniff'",
+            'method.response.header.X-Frame-Options': "'DENY'",
+            'method.response.header.X-XSS-Protection': "'1; mode=block'",
+            'method.response.header.Strict-Transport-Security': "'max-age=31536000; includeSubDomains'",
+          },
+        },
+      ],
     });
+    authResource.addResource("signup").addMethod("POST", signupIntegration, publicMethodOptions);
+
+    // POST /auth/login
+    const loginIntegration = new LambdaIntegration(loginLambda, {
+      proxy: true,
+      integrationResponses: [
+        {
+          statusCode: '200',
+          responseParameters: {
+            'method.response.header.Access-Control-Allow-Origin': "'*'",
+            'method.response.header.X-Content-Type-Options': "'nosniff'",
+            'method.response.header.X-Frame-Options': "'DENY'",
+            'method.response.header.X-XSS-Protection': "'1; mode=block'",
+            'method.response.header.Strict-Transport-Security': "'max-age=31536000; includeSubDomains'",
+          },
+        },
+      ],
+    });
+    authResource.addResource("login").addMethod("POST", loginIntegration, publicMethodOptions);
+    
+    const todoResource = api.root.addResource("todo");
     
     // POST /todo - Create task
     const todoCreateLambdaIntegration = new LambdaIntegration(createTaskLambda, {
@@ -200,7 +281,7 @@ export class ApiStack extends Stack {
         },
       ],
     });
-    todoResource.addMethod("POST", todoCreateLambdaIntegration, methodOptions);
+    todoResource.addMethod("POST", todoCreateLambdaIntegration, protectedMethodOptions);
     
     // GET /todo - Get all tasks
     const todoGetLambdaIntegration = new LambdaIntegration(getTasksLambda, {
@@ -218,7 +299,7 @@ export class ApiStack extends Stack {
         },
       ],
     });
-    todoResource.addMethod("GET", todoGetLambdaIntegration, methodOptions);
+    todoResource.addMethod("GET", todoGetLambdaIntegration, protectedMethodOptions);
     
     // PUT /todo/{taskId} - Update task
     const todoTaskResource = todoResource.addResource("{taskId}", {
@@ -244,7 +325,7 @@ export class ApiStack extends Stack {
         },
       ],
     });
-    todoTaskResource.addMethod("PUT", todoUpdateLambdaIntegration, methodOptions);
+    todoTaskResource.addMethod("PUT", todoUpdateLambdaIntegration, protectedMethodOptions);
     
     // DELETE /todo/{taskId} - Delete task
     const todoDeleteLambdaIntegration = new LambdaIntegration(deleteTaskLambda, {
@@ -262,7 +343,7 @@ export class ApiStack extends Stack {
         },
       ],
     });
-    todoTaskResource.addMethod("DELETE", todoDeleteLambdaIntegration, methodOptions);
+    todoTaskResource.addMethod("DELETE", todoDeleteLambdaIntegration, protectedMethodOptions);
     
     // PATCH /todo/{taskId}/done - Mark task as done
     const todoDoneResource = todoTaskResource.addResource("done", {
@@ -288,7 +369,7 @@ export class ApiStack extends Stack {
         },
       ],
     });
-    todoDoneResource.addMethod("PATCH", todoMarkDoneLambdaIntegration, methodOptions);
+    todoDoneResource.addMethod("PATCH", todoMarkDoneLambdaIntegration, protectedMethodOptions);
 
     // Create API Key for additional rate limiting (optional)
     const apiKey = new ApiKey(this, "TodoAppApiKey", {

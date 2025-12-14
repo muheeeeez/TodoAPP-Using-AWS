@@ -25,10 +25,15 @@ export const useTasksStore = () => {
     loading.value = true;
     error.value = null;
     try {
-      tasks.value = await api.getTasks();
+      const fetchedTasks = await api.getTasks();
+      tasks.value = Array.isArray(fetchedTasks) ? fetchedTasks : [];
     } catch (err: any) {
       error.value = err.message || 'Failed to fetch tasks';
       console.error('Error fetching tasks:', err);
+      // Ensure tasks is always an array even on error
+      if (!Array.isArray(tasks.value)) {
+        tasks.value = [];
+      }
     } finally {
       loading.value = false;
     }

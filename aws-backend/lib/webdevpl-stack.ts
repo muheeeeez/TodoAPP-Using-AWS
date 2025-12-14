@@ -1,6 +1,6 @@
 import * as cdk from 'aws-cdk-lib';
 import { Duration } from 'aws-cdk-lib';
-import { Distribution, OriginAccessIdentity, ResponseHeadersPolicy } from 'aws-cdk-lib/aws-cloudfront';
+import { Distribution, OriginAccessIdentity, ResponseHeadersPolicy, HeadersFrameOption } from 'aws-cdk-lib/aws-cloudfront';
 import { S3BucketOrigin } from 'aws-cdk-lib/aws-cloudfront-origins';
 import { Bucket } from 'aws-cdk-lib/aws-s3';
 import { BucketDeployment, Source } from 'aws-cdk-lib/aws-s3-deployment';
@@ -30,20 +30,33 @@ export class TodoAppWebdeplStack extends cdk.Stack {
       responseHeadersPolicyName: 'TodoAppCorsPolicy',
       corsBehavior: {
         accessControlAllowCredentials: true,
-        accessControlAllowHeaders: ['*'],
+        accessControlAllowHeaders: [
+          'Content-Type',
+          'X-Amz-Date',
+          'Authorization',
+          'X-Api-Key',
+          'X-Amz-Security-Token',
+          'Accept',
+          'Origin',
+        ],
         accessControlAllowMethods: ['GET', 'HEAD', 'OPTIONS'],
         accessControlAllowOrigins: [
           'http://localhost:3000',
           'https://localhost:3000',
           'https://d26sbga84c89mx.cloudfront.net',
         ],
-        accessControlExposeHeaders: ['*'],
+        accessControlExposeHeaders: [
+          'Content-Type',
+          'Content-Length',
+          'ETag',
+          'Last-Modified',
+        ],
         accessControlMaxAge: Duration.seconds(3600),
         originOverride: false,
       },
       securityHeadersBehavior: {
         contentTypeOptions: { override: true },
-        frameOptions: { frameOption: 'DENY', override: true },
+        frameOptions: { frameOption: HeadersFrameOption.DENY, override: true },
         xssProtection: { protection: true, modeBlock: true, override: true },
       },
     });

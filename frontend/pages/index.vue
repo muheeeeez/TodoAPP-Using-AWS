@@ -47,7 +47,7 @@
 <script setup lang="ts">
 definePageMeta({
   layout: false,
-  middleware: 'guest', // Only allow guests (not authenticated users)
+  middleware: 'guest', // Redirect authenticated users to /tasks
 });
 </script>
 

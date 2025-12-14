@@ -18,18 +18,43 @@
     </div>
 
     <div class="task-actions">
-      <button
-        v-if="task.status !== 'completed'"
-        @click="$emit('mark-done', task.taskId)"
-        class="btn btn-success"
-      >
-        <IconCheck class="btn-icon" />
-        <span class="btn-text-full">Mark Done</span>
-        <span class="btn-text-short">Done</span>
-      </button>
+      <!-- Quick Status Actions -->
+      <template v-if="task.status === 'pending'">
+        <button
+          @click="$emit('change-status', { taskId: task.taskId, status: 'in-progress' })"
+          class="btn btn-info"
+          title="Start Task"
+        >
+          <IconPlay class="btn-icon" />
+          <span class="btn-text-full">Start</span>
+        </button>
+      </template>
+      <template v-else-if="task.status === 'in-progress'">
+        <button
+          @click="$emit('mark-done', task.taskId)"
+          class="btn btn-success"
+          title="Mark as Completed"
+        >
+          <IconCheck class="btn-icon" />
+          <span class="btn-text-full">Complete</span>
+        </button>
+      </template>
+      <template v-else-if="task.status === 'pending' || task.status === 'in-progress'">
+        <button
+          @click="$emit('change-status', { taskId: task.taskId, status: 'cancelled' })"
+          class="btn btn-warning"
+          title="Cancel Task"
+        >
+          <IconXMark class="btn-icon" />
+          <span class="btn-text-full">Cancel</span>
+        </button>
+      </template>
+      
+      <!-- Edit and Delete Actions -->
       <button
         @click="$emit('edit', task)"
         class="btn btn-primary"
+        title="Edit Task"
       >
         <IconPencil class="btn-icon" />
         <span class="btn-text-full">Edit</span>
@@ -37,6 +62,7 @@
       <button
         @click="$emit('delete', task.taskId)"
         class="btn btn-danger"
+        title="Delete Task"
       >
         <IconTrash class="btn-icon" />
         <span class="btn-text-full">Delete</span>
@@ -48,6 +74,8 @@
 <script setup lang="ts">
 import type { Task } from '~/types/task';
 import IconCheck from './icons/IconCheck.vue';
+import IconPlay from './icons/IconPlay.vue';
+import IconXMark from './icons/IconXMark.vue';
 import IconPencil from './icons/IconPencil.vue';
 import IconTrash from './icons/IconTrash.vue';
 
@@ -59,6 +87,7 @@ const props = defineProps<Props>();
 
 defineEmits<{
   'mark-done': [taskId: string];
+  'change-status': [data: { taskId: string; status: 'in-progress' | 'cancelled' }];
   'edit': [task: Task];
   'delete': [taskId: string];
 }>();
@@ -216,6 +245,24 @@ const formatDate = (dateString: string) => {
 
 .btn-danger:hover {
   background-color: #dc2626;
+}
+
+.btn-info {
+  background-color: var(--color-info);
+  color: white;
+}
+
+.btn-info:hover {
+  background-color: color-mix(in srgb, var(--color-info) 90%, black);
+}
+
+.btn-warning {
+  background-color: var(--color-warning);
+  color: white;
+}
+
+.btn-warning:hover {
+  background-color: color-mix(in srgb, var(--color-warning) 90%, black);
 }
 
 

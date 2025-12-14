@@ -1,12 +1,25 @@
 <template>
-  <NuxtLayout>
-    <div class="tasks-page">
-      <AppHeader />
-      <div class="container page-content">
+  <div class="tasks-page">
+    <div class="page-content">
       <!-- Welcome Section -->
       <div class="welcome-section">
         <h1 class="welcome-title">Your Tasks</h1>
         <p class="welcome-subtitle">Stay organized and productive</p>
+      </div>
+
+      <!-- Status Filter Tabs -->
+      <div class="filter-tabs-container">
+        <div class="filter-tabs">
+          <button
+            v-for="filter in statusFilters"
+            :key="filter.value"
+            @click="activeFilter = filter.value"
+            :class="['filter-tab', { 'filter-tab--active': activeFilter === filter.value }]"
+          >
+            <span class="filter-tab-label">{{ filter.label }}</span>
+            <span class="filter-tab-count">({{ filter.count }})</span>
+          </button>
+        </div>
       </div>
 
       <!-- Create Task Button -->
@@ -56,7 +69,7 @@
       </Transition>
 
       <!-- Loading State -->
-      <div v-if="tasksStore.loading && tasksStore.tasks.length === 0" class="loading-state">
+      <div v-if="tasksStore.loading && (!tasksStore.tasks || tasksStore.tasks.length === 0)" class="loading-state">
         <div class="spinner"></div>
         <p class="loading-text">Loading tasks...</p>
       </div>
@@ -67,13 +80,14 @@
       </div>
 
       <!-- Tasks Grid -->
-      <div v-if="!tasksStore.loading || tasksStore.tasks.length > 0" class="tasks-grid">
+      <div v-if="!tasksStore.loading || filteredTasks.length > 0" class="tasks-grid">
         <TransitionGroup name="list">
           <TaskCard
-            v-for="task in tasksStore.tasks"
+            v-for="task in filteredTasks"
             :key="task.taskId"
             :task="task"
             @mark-done="handleMarkDone"
+            @change-status="handleChangeStatus"
             @edit="editingTask = $event"
             @delete="handleDelete"
           />
@@ -81,12 +95,16 @@
       </div>
 
       <!-- Empty State -->
-      <div v-if="!tasksStore.loading && tasksStore.tasks.length === 0" class="empty-state">
+      <div v-if="!tasksStore.loading && filteredTasks.length === 0" class="empty-state">
         <div class="empty-icon-container">
           <IconListBullet size="4rem" />
         </div>
-        <h2 class="empty-title">No tasks yet</h2>
-        <p class="empty-subtitle">Create your first task to get started!</p>
+        <h2 class="empty-title">
+          {{ activeFilter === 'all' ? 'No tasks yet' : `No ${getFilterLabel(activeFilter)} tasks` }}
+        </h2>
+        <p class="empty-subtitle">
+          {{ activeFilter === 'all' ? 'Create your first task to get started!' : `Try selecting a different filter or create a new task.` }}
+        </p>
         <button
           @click="showCreateForm = true"
           class="empty-button"
@@ -95,14 +113,12 @@
           <span>Create Task</span>
         </button>
       </div>
-      </div>
     </div>
-  </NuxtLayout>
+  </div>
 </template>
 
 <script setup lang="ts">
 import type { Task } from '~/types/task';
-import AppHeader from '~/components/AppHeader.vue';
 import TaskCard from '~/components/TaskCard.vue';
 import TaskForm from '~/components/TaskForm.vue';
 import IconPlus from '~/components/icons/IconPlus.vue';
@@ -116,18 +132,57 @@ definePageMeta({
 const tasksStore = useTasksStore();
 const showCreateForm = ref(false);
 const editingTask = ref<Task | null>(null);
+const activeFilter = ref<'all' | 'pending' | 'in-progress' | 'completed' | 'cancelled'>('all');
 
 // Fetch tasks on mount
 onMounted(async () => {
   await tasksStore.fetchTasks();
 });
 
+// Filtered tasks based on active filter
+const filteredTasks = computed(() => {
+  const tasks = Array.isArray(tasksStore.tasks) ? tasksStore.tasks : [];
+  if (activeFilter.value === 'all') {
+    return tasks;
+  }
+  return tasks.filter(task => task.status === activeFilter.value);
+});
+
+// Status filter options with counts
+const statusFilters = computed(() => {
+  const tasks = Array.isArray(tasksStore.tasks) ? tasksStore.tasks : [];
+  return [
+    { value: 'all' as const, label: 'All', count: tasks.length },
+    { value: 'pending' as const, label: 'Pending', count: tasksStore.pendingTasks?.length || 0 },
+    { value: 'in-progress' as const, label: 'In Progress', count: tasksStore.inProgressTasks?.length || 0 },
+    { value: 'completed' as const, label: 'Completed', count: tasksStore.completedTasks?.length || 0 },
+    { value: 'cancelled' as const, label: 'Cancelled', count: tasks.filter(t => t.status === 'cancelled').length },
+  ];
+});
+
+// Get filter label for empty state
+const getFilterLabel = (filter: string) => {
+  const filterMap: Record<string, string> = {
+    'all': 'tasks',
+    'pending': 'pending',
+    'in-progress': 'in-progress',
+    'completed': 'completed',
+    'cancelled': 'cancelled',
+  };
+  return filterMap[filter] || 'tasks';
+};
+
 const handleCreateTask = async (data: { title: string; description?: string }) => {
   try {
     await tasksStore.createTask(data.title, data.description);
     showCreateForm.value = false;
-  } catch (error) {
+    // Show success feedback
+    if (tasksStore.error) {
+      // Error will be shown in error message area
+    }
+  } catch (error: any) {
     console.error('Failed to create task:', error);
+    // Error is already handled in store and displayed in error message area
   }
 };
 
@@ -151,6 +206,14 @@ const handleMarkDone = async (taskId: string) => {
     await tasksStore.markTaskDone(taskId);
   } catch (error) {
     console.error('Failed to mark task as done:', error);
+  }
+};
+
+const handleChangeStatus = async (data: { taskId: string; status: 'in-progress' | 'cancelled' }) => {
+  try {
+    await tasksStore.updateTask(data.taskId, { status: data.status });
+  } catch (error) {
+    console.error('Failed to change task status:', error);
   }
 };
 
@@ -193,6 +256,64 @@ const handleDelete = async (taskId: string) => {
 .welcome-subtitle {
   color: #64748b;
   font-size: clamp(1rem, 2.5vw, 1.125rem);
+}
+
+.filter-tabs-container {
+  margin-bottom: 2rem;
+  width: 100%;
+}
+
+.filter-tabs {
+  display: flex;
+  gap: 0.5rem;
+  flex-wrap: wrap;
+  background: white;
+  padding: 0.5rem;
+  border-radius: 0.75rem;
+  box-shadow: var(--shadow-sm);
+  overflow-x: auto;
+}
+
+.filter-tab {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.5rem 1rem;
+  border: 1px solid var(--color-gray-300);
+  border-radius: 0.5rem;
+  background: white;
+  color: var(--color-gray-700);
+  font-weight: 500;
+  font-size: 0.875rem;
+  cursor: pointer;
+  transition: all var(--transition-base);
+  white-space: nowrap;
+  min-height: 44px;
+}
+
+.filter-tab:hover {
+  background: var(--color-gray-100);
+  border-color: var(--color-gray-400);
+}
+
+.filter-tab--active {
+  background: var(--color-primary);
+  color: white;
+  border-color: var(--color-primary);
+}
+
+.filter-tab--active:hover {
+  background: var(--color-primary-dark);
+  border-color: var(--color-primary-dark);
+}
+
+.filter-tab-label {
+  font-weight: 600;
+}
+
+.filter-tab-count {
+  font-size: 0.75rem;
+  opacity: 0.8;
 }
 
 .create-button-container {

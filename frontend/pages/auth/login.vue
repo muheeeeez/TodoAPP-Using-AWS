@@ -66,7 +66,7 @@
 import { useAuth } from '~/composables/useAuth';
 
 definePageMeta({
-  middleware: 'auth',
+  middleware: 'guest', // Allow unauthenticated users, redirect authenticated users
   layout: false,
 });
 

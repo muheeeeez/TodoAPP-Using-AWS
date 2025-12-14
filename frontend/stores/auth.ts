@@ -1,6 +1,7 @@
 export interface User {
   email: string;
   userId: string;
+  username?: string;
 }
 
 export const useAuthStore = () => {
