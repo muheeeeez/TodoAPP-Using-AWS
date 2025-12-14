@@ -18,7 +18,6 @@ import {
   ApiKey,
   ApiKeySourceType,
   AuthorizationType,
-  MethodLoggingLevel,
 } from "aws-cdk-lib/aws-apigateway";
 
 export class ApiStack extends Stack {
@@ -107,14 +106,14 @@ export class ApiStack extends Stack {
           },
         ],
       },
-      // Enable API Gateway logging
+      // Deploy options
       deployOptions: {
         stageName: 'prod',
-        loggingLevel: MethodLoggingLevel.INFO,
-        dataTraceEnabled: true,
+        // Note: API Gateway logging disabled - requires CloudWatch Logs role setup
+        // Enable metrics for monitoring (doesn't require CloudWatch Logs role)
         metricsEnabled: true,
         throttlingBurstLimit: 100, // Burst limit: 100 requests
-        throttlingRateLimit: 50, // Steady-state rate: 50 requests/second (number is correct for this property)
+        throttlingRateLimit: 50, // Steady-state rate: 50 requests/second
       },
     });
 
