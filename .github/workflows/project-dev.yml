@@ -27,7 +27,7 @@ jobs:
         working-directory: ./aws-backend
         run: npm ci
 
-      - name: CDK Synth
+      - name: CDK Synthesize
         working-directory: ./aws-backend
         run: cdk synth
 
