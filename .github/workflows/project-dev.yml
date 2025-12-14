@@ -21,6 +21,10 @@ jobs:
   
       - name: build web app
         working-directory: ./frontend
+        env:
+          NUXT_PUBLIC_API_BASE_URL: ${{ secrets.NUXT_PUBLIC_API_BASE_URL }}
+          NUXT_PUBLIC_COGNITO_USER_POOL_ID: ${{ secrets.NUXT_PUBLIC_COGNITO_USER_POOL_ID }}
+          NUXT_PUBLIC_COGNITO_CLIENT_ID: ${{ secrets.NUXT_PUBLIC_COGNITO_CLIENT_ID }}
         run: npm run build
 
       - name: install AWS CDK

@@ -5,6 +5,7 @@ import { getUserId } from '../utils/getUserId';
 import { validateUpdateTaskInput, validateTaskId, ValidationError } from '../utils/validation';
 import { handleError, AppError } from '../utils/errorHandler';
 import { Logger } from '../utils/logger';
+import { addCorsHeaders } from '../utils/corsHeaders';
 
 const client = new DynamoDBClient({});
 const ddbDocClient = DynamoDBDocumentClient.from(client);
@@ -112,12 +113,12 @@ export const handler: APIGatewayProxyHandlerV2 = async (event) => {
 
     return {
       statusCode: 200,
-      headers: {
+      headers: addCorsHeaders({
         'Content-Type': 'application/json',
         'X-Content-Type-Options': 'nosniff',
         'X-Frame-Options': 'DENY',
         'X-XSS-Protection': '1; mode=block',
-      },
+      }),
       body: JSON.stringify(result.Attributes),
     };
   } catch (error) {

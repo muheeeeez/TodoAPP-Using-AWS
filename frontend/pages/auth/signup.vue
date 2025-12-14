@@ -79,6 +79,8 @@
 </template>
 
 <script setup lang="ts">
+import { useAuth } from '~/composables/useAuth';
+
 definePageMeta({
   middleware: 'auth',
   layout: false,
@@ -106,8 +108,11 @@ const handleSignUp = async () => {
   error.value = null;
 
   try {
-    await auth.signUp(form.email, form.password);
-    await router.push('/');
+    const result = await auth.signUp(form.email, form.password);
+    if (result.message) {
+      alert(result.message);
+    }
+    await router.push('/auth/login');
   } catch (err: any) {
     error.value = err.message || 'Failed to create account';
   } finally {
@@ -122,8 +127,9 @@ const handleSignUp = async () => {
   display: flex;
   align-items: center;
   justify-content: center;
-  padding: var(--spacing-md);
+  padding: 2rem;
   width: 100%;
+  background: #f8fafc;
 }
 
 .auth-container {
@@ -133,42 +139,42 @@ const handleSignUp = async () => {
 }
 
 .auth-card {
-  background: rgba(255, 255, 255, 0.1);
-  backdrop-filter: blur(12px);
-  border-radius: var(--radius-xl);
-  box-shadow: var(--shadow-xl);
-  padding: var(--spacing-xl);
-  border: 1px solid rgba(255, 255, 255, 0.2);
+  background: white;
+  border-radius: 0.75rem;
+  box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -2px rgba(0, 0, 0, 0.1);
+  padding: 2.5rem;
+  border: 1px solid #e2e8f0;
 }
 
 .auth-header {
   text-align: center;
-  margin-bottom: var(--spacing-xl);
+  margin-bottom: 2rem;
 }
 
 .auth-title {
-  font-size: 2.25rem;
+  font-size: 2rem;
   font-weight: 700;
-  color: white;
-  margin-bottom: var(--spacing-sm);
+  color: #1e293b;
+  margin-bottom: 0.5rem;
 }
 
 .auth-subtitle {
-  color: rgba(255, 255, 255, 0.8);
+  color: #64748b;
+  font-size: 0.875rem;
 }
 
 .auth-form {
   display: flex;
   flex-direction: column;
-  gap: var(--spacing-lg);
+  gap: 1.5rem;
 }
 
 .error-alert {
   background: #fee2e2;
   border: 1px solid #fca5a5;
   color: #991b1b;
-  padding: var(--spacing-md);
-  border-radius: var(--radius-lg);
+  padding: 0.75rem;
+  border-radius: 0.5rem;
   font-size: 0.875rem;
 }
 
@@ -181,74 +187,77 @@ const handleSignUp = async () => {
   display: block;
   font-size: 0.875rem;
   font-weight: 500;
-  color: white;
-  margin-bottom: var(--spacing-sm);
+  color: #374151;
+  margin-bottom: 0.5rem;
 }
 
 .form-input {
   width: 100%;
-  padding: var(--spacing-md);
-  background: rgba(255, 255, 255, 0.2);
-  border: 1px solid rgba(255, 255, 255, 0.3);
-  border-radius: var(--radius-lg);
-  color: white;
+  padding: 0.75rem;
+  background: white;
+  border: 1px solid #d1d5db;
+  border-radius: 0.5rem;
+  color: #1e293b;
   font-size: 1rem;
-  transition: all var(--transition-base);
-}
-
-.form-input::placeholder {
-  color: rgba(255, 255, 255, 0.5);
+  transition: all 0.2s ease;
 }
 
 .form-input:focus {
   outline: none;
-  border-color: rgba(255, 255, 255, 0.5);
-  box-shadow: 0 0 0 2px rgba(255, 255, 255, 0.1);
+  border-color: #3b82f6;
+  box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
+}
+
+.form-input::placeholder {
+  color: #9ca3af;
 }
 
 .form-hint {
-  color: rgba(255, 255, 255, 0.6);
+  color: #64748b;
   font-size: 0.75rem;
-  margin-top: var(--spacing-xs);
+  margin-top: 0.25rem;
 }
 
 .auth-button {
   width: 100%;
-  padding: var(--spacing-md) var(--spacing-lg);
-  background: white;
-  color: var(--color-primary);
+  padding: 0.75rem 1.5rem;
+  background: #1e40af;
+  color: white;
   border: none;
-  border-radius: var(--radius-lg);
+  border-radius: 0.5rem;
   font-weight: 600;
   cursor: pointer;
-  transition: all var(--transition-base);
+  transition: all 0.2s ease;
   min-height: 44px;
+  font-size: 1rem;
 }
 
 .auth-button:hover:not(:disabled) {
-  background: var(--color-gray-100);
-  transform: scale(1.05);
+  background: #1e3a8a;
+  transform: translateY(-1px);
+  box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
 }
 
 .auth-button:disabled {
-  opacity: 0.5;
+  opacity: 0.6;
   cursor: not-allowed;
 }
 
 .auth-footer {
-  margin-top: var(--spacing-xl);
+  margin-top: 2rem;
   text-align: center;
 }
 
 .auth-footer-text {
-  color: rgba(255, 255, 255, 0.8);
+  color: #64748b;
   font-size: 0.875rem;
 }
 
 .auth-link {
-  color: white;
+  color: #1e40af;
   font-weight: 600;
   text-decoration: none;
+  margin-left: 0.25rem;
 }
 
 .auth-link:hover {

@@ -1,4 +1,5 @@
 import type { Task, CreateTaskInput, UpdateTaskInput, ApiError } from '~/types/task';
+import { useAuthStore } from '~/stores/auth';
 
 export const useApi = () => {
   const config = useRuntimeConfig();
@@ -21,6 +22,14 @@ export const useApi = () => {
 
   const handleResponse = async <T>(response: Response): Promise<T> => {
     if (!response.ok) {
+      // Handle 401 Unauthorized - token expired or invalid
+      if (response.status === 401) {
+        const auth = useAuth();
+        authStore.clearAuth();
+        await auth.signOut();
+        throw new Error('Session expired. Please sign in again.');
+      }
+      
       const error: ApiError = await response.json().catch(() => ({
         error: 'Unknown Error',
         message: response.statusText,

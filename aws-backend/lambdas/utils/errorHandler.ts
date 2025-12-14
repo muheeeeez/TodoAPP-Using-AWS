@@ -1,4 +1,5 @@
 import { APIGatewayProxyHandlerV2, APIGatewayProxyResultV2 } from 'aws-lambda';
+import { addCorsHeaders } from './corsHeaders';
 
 /**
  * Standard error response format
@@ -42,12 +43,12 @@ export function handleError(
   if (error instanceof AppError) {
     return {
       statusCode: error.statusCode,
-      headers: {
+      headers: addCorsHeaders({
         'Content-Type': 'application/json',
         'X-Content-Type-Options': 'nosniff',
         'X-Frame-Options': 'DENY',
         'X-XSS-Protection': '1; mode=block',
-      },
+      }),
       body: JSON.stringify({
         error: error.error,
         message: error.message,
@@ -62,12 +63,12 @@ export function handleError(
   if (error instanceof SyntaxError && error.message.includes('JSON')) {
     return {
       statusCode: 400,
-      headers: {
+      headers: addCorsHeaders({
         'Content-Type': 'application/json',
         'X-Content-Type-Options': 'nosniff',
         'X-Frame-Options': 'DENY',
         'X-XSS-Protection': '1; mode=block',
-      },
+      }),
       body: JSON.stringify({
         error: 'Invalid JSON',
         message: 'Request body contains invalid JSON',
@@ -85,12 +86,12 @@ export function handleError(
     if (dbError.name === 'ResourceNotFoundException') {
       return {
         statusCode: 404,
-        headers: {
+        headers: addCorsHeaders({
           'Content-Type': 'application/json',
           'X-Content-Type-Options': 'nosniff',
           'X-Frame-Options': 'DENY',
           'X-XSS-Protection': '1; mode=block',
-        },
+        }),
         body: JSON.stringify({
           error: 'Resource Not Found',
           message: 'The requested resource was not found',
@@ -104,12 +105,12 @@ export function handleError(
     if (dbError.name === 'ConditionalCheckFailedException') {
       return {
         statusCode: 409,
-        headers: {
+        headers: addCorsHeaders({
           'Content-Type': 'application/json',
           'X-Content-Type-Options': 'nosniff',
           'X-Frame-Options': 'DENY',
           'X-XSS-Protection': '1; mode=block',
-        },
+        }),
         body: JSON.stringify({
           error: 'Conflict',
           message: 'The operation conflicts with the current state',
@@ -123,12 +124,12 @@ export function handleError(
     if (dbError.name === 'ProvisionedThroughputExceededException') {
       return {
         statusCode: 503,
-        headers: {
+        headers: addCorsHeaders({
           'Content-Type': 'application/json',
           'X-Content-Type-Options': 'nosniff',
           'X-Frame-Options': 'DENY',
           'X-XSS-Protection': '1; mode=block',
-        },
+        }),
         body: JSON.stringify({
           error: 'Service Unavailable',
           message: 'The service is temporarily unavailable. Please try again later.',
@@ -143,12 +144,12 @@ export function handleError(
   // Handle generic errors
   return {
     statusCode: 500,
-    headers: {
+    headers: addCorsHeaders({
       'Content-Type': 'application/json',
       'X-Content-Type-Options': 'nosniff',
       'X-Frame-Options': 'DENY',
       'X-XSS-Protection': '1; mode=block',
-    },
+    }),
     body: JSON.stringify({
       error: 'Internal Server Error',
       message: process.env.NODE_ENV === 'production' 

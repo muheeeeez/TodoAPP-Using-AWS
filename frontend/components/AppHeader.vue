@@ -29,19 +29,26 @@
 import IconListBullet from './icons/IconListBullet.vue';
 import IconUser from './icons/IconUser.vue';
 import IconLogout from './icons/IconLogout.vue';
+import { useAuth } from '~/composables/useAuth';
 
 const auth = useAuth();
 
 const handleSignOut = async () => {
-  await auth.signOut();
+  try {
+    await auth.signOut();
+  } catch (error) {
+    console.error('Sign out error:', error);
+    // Force redirect even if sign out fails
+    await navigateTo('/auth/login');
+  }
 };
 </script>
 
 <style scoped>
 .app-header {
-  background: rgba(255, 255, 255, 0.1);
-  backdrop-filter: blur(12px);
-  box-shadow: var(--shadow-lg);
+  background: white;
+  border-bottom: 1px solid #e2e8f0;
+  box-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.1);
   position: sticky;
   top: 0;
   z-index: 50;
@@ -67,13 +74,13 @@ const handleSignOut = async () => {
   gap: var(--spacing-sm);
   font-size: 1.5rem;
   font-weight: 700;
-  color: white;
+  color: #1e40af;
   text-decoration: none;
   transition: color var(--transition-base);
 }
 
 .logo:hover {
-  color: rgba(255, 255, 255, 0.8);
+  color: #1e3a8a;
 }
 
 
@@ -91,7 +98,7 @@ const handleSignOut = async () => {
   display: flex;
   align-items: center;
   gap: var(--spacing-sm);
-  color: rgba(255, 255, 255, 0.9);
+  color: #64748b;
   font-size: 0.875rem;
 }
 
@@ -105,7 +112,7 @@ const handleSignOut = async () => {
   align-items: center;
   gap: var(--spacing-sm);
   padding: var(--spacing-sm) var(--spacing-md);
-  background: rgba(255, 255, 255, 0.2);
+  background: #1e40af;
   color: white;
   border: none;
   border-radius: var(--radius-lg);
@@ -116,8 +123,9 @@ const handleSignOut = async () => {
 }
 
 .sign-out-btn:hover {
-  background: rgba(255, 255, 255, 0.3);
-  transform: scale(1.05);
+  background: #1e3a8a;
+  transform: translateY(-1px);
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
 }
 
 

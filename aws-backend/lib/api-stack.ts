@@ -80,7 +80,11 @@ export class ApiStack extends Stack {
       restApiName: "TodoApp API",
       description: "REST API for Todo Application",
       defaultCorsPreflightOptions: {
-        allowOrigins: Cors.ALL_ORIGINS, // In production, specify exact origins
+        allowOrigins: [
+          'http://localhost:3000',
+          'https://localhost:3000',
+          'https://d26sbga84c89mx.cloudfront.net',
+        ],
         allowMethods: Cors.ALL_METHODS,
         allowHeaders: [
           'Content-Type',
@@ -163,9 +167,19 @@ export class ApiStack extends Stack {
     
     const todoResource = api.root.addResource("todo", {
       defaultCorsPreflightOptions: {
-        allowOrigins: Cors.ALL_ORIGINS,
-        allowMethods: ['GET', 'POST', 'OPTIONS'],
-        allowHeaders: ['Content-Type', 'Authorization'],
+        allowOrigins: [
+          'http://localhost:3000',
+          'https://localhost:3000',
+          'https://d26sbga84c89mx.cloudfront.net',
+        ],
+        allowMethods: Cors.ALL_METHODS,
+        allowHeaders: [
+          'Content-Type',
+          'X-Amz-Date',
+          'Authorization',
+          'X-Api-Key',
+          'X-Amz-Security-Token',
+        ],
         allowCredentials: true,
       },
     });
